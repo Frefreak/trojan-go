@@ -4,6 +4,7 @@
 package tproxy
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -115,22 +116,27 @@ func getOriginalTCPDest(conn *net.TCPConn) (*net.TCPAddr, error) {
 		}, nil
 	}
 
+	if addr, ok := conn.LocalAddr().(*net.TCPAddr); ok {
+		return addr, nil
+	}
+	return nil, errors.New("not TCPAddr")
+
 	// IPv4
-	var addr syscall.RawSockaddrInet4
-	var len uint32
-	len = uint32(unsafe.Sizeof(addr))
-	err = getsockopt(fd, syscall.IPPROTO_IP, SO_ORIGINAL_DST,
-		unsafe.Pointer(&addr), &len)
-	if err != nil {
-		return nil, os.NewSyscallError("getsockopt", err)
-	}
-	ip := make([]byte, 4)
-	for i, b := range addr.Addr {
-		ip[i] = b
-	}
-	pb := *(*[2]byte)(unsafe.Pointer(&addr.Port))
-	return &net.TCPAddr{
-		IP:   ip,
-		Port: int(pb[0])*256 + int(pb[1]),
-	}, nil
+	// var addr syscall.RawSockaddrInet4
+	// var len uint32
+	// len = uint32(unsafe.Sizeof(addr))
+	// err = getsockopt(fd, syscall.IPPROTO_IP, SO_ORIGINAL_DST,
+	// 	unsafe.Pointer(&addr), &len)
+	// if err != nil {
+	// 	return nil, os.NewSyscallError("getsockopt", err)
+	// }
+	// ip := make([]byte, 4)
+	// for i, b := range addr.Addr {
+	// 	ip[i] = b
+	// }
+	// pb := *(*[2]byte)(unsafe.Pointer(&addr.Port))
+	// return &net.TCPAddr{
+	// 	IP:   ip,
+	// 	Port: int(pb[0])*256 + int(pb[1]),
+	// }, nil
 }
